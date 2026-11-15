@@ -1,3 +1,4 @@
+import {studentFields,studentLists,validateProfile} from './public/profile-model.js';
 import {teacherModules} from './public/workspace-model.js';
 import { randomBytes, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -10,7 +11,7 @@ export function validPassword(p){return typeof p==='string'&&p.length>=12&&p.len
 export async function hashPassword(p){const salt=randomBytes(16).toString('hex');return salt+':'+Buffer.from(await derive(p,salt,64)).toString('hex')}
 export async function checkPassword(p,hash){if(typeof p!=='string'||p.length>128||!hash)return false;const [salt,key]=hash.split(':');if(!salt||!key)return false;return equal(Buffer.from(await derive(p,salt,64)).toString('hex'),key)}
 export function permitted(u,kind){return kinds.includes(kind)&&(u.role==='zavuch'||(u.role==='teacher'&&teacherModules.includes(kind)))}
-export function validateRecord(data){if(!data||typeof data!=='object')return null;const result={};for(const key of ['name','detail','extra']){if(typeof data[key]!=='string'||data[key].length>250)return null;result[key]=data[key].trim()}for(const key of ['groupId','teacherId','studentId','subject','date','weekday','startTime','endTime','room','status','value']){if(data[key]!==undefined){if(typeof data[key]!=='string'||data[key].length>250)return null;result[key]=data[key].trim()}}return result.name?result:null}
+export function validateRecord(data){if(!data||typeof data!=='object')return null;const result={};for(const key of ['name','detail','extra']){if(typeof data[key]!=='string'||data[key].length>250)return null;result[key]=data[key].trim()}for(const key of ['groupId','teacherId','studentId','subject','date','weekday','startTime','endTime','room','status','value']){if(data[key]!==undefined){if(typeof data[key]!=='string'||data[key].length>250)return null;result[key]=data[key].trim()}}for(const key of [...Object.keys(studentFields),'teacherAccountId','phone'])if(data[key]!==undefined)result[key]=data[key];if(data.active!==undefined)result.active=data.active;for(const key of Object.keys(studentLists))if(data[key]!==undefined)result[key]=data[key];for(const key of ['teacherName','part','sourceImportId'])if(data[key]!==undefined){if(typeof data[key]!=='string'||data[key].length>250)return null;result[key]=data[key];}try{validateProfile(result,m=>{throw Error(m)})}catch{return null}return result.name?result:null}
 export function safeEmail(e){return typeof e==='string'&&e.length<255&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
 
 

@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check server.mjs && node --check public/app.js && node --check public/demo.js && node --check demo-http.mjs && node --check syllabus-source.mjs && node --check workspace-api.mjs && node --check public/workspace-model.js && node --check lesson-api.mjs && node --check lesson-docx.mjs && node --check public/lesson-model.js && node --check cover-art.mjs && node --check public/cover-model.js && node --check program-cover.mjs"
+    "check": "node --check server.mjs && node --check public/app.js && node --check public/demo.js && node --check demo-http.mjs && node --check syllabus-source.mjs && node --check workspace-api.mjs && node --check public/workspace-model.js && node --check lesson-api.mjs && node --check lesson-docx.mjs && node --check public/lesson-model.js && node --check cover-art.mjs && node --check public/cover-model.js && node --check program-cover.mjs && node --check schedule-api.mjs && node --check public/schedule-reader.js && node --check public/schedule-model.js && node --check vendor-assets.mjs && node --check public/schedule-ui.js && node --check public/profile-model.js"
   },
   "dependencies": {
     "pg": "8.16.3",
@@ -17,6 +17,11 @@
     "mammoth": "1.10.0",
     "pdf-parse": "1.1.1",
     "jszip": "3.10.1",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "pdfjs-dist": "5.6.205",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/rus": "1.0.0"
   }
 }

@@ -1,3 +1,5 @@
+import {planScheduleImport,scheduleRevision} from './schedule-model.js';
+import {validateProfile} from './profile-model.js';
 import {generateLesson,sourceStamp,validateLesson} from './lesson-model.js';
 import {teacherModules,visibleRecord,editableRecord,normalizeSchoolRecord,arrivalSummary,dateParts,tuition} from './workspace-model.js';
 const modules = ['students','staff','groups','schedule','attendance','preparation','teachers','grades','arrivals','monthly','graduates','rooms','assignments','announcements','curricula'];
@@ -105,6 +107,7 @@ export function createDemo(role, options = {}) {
       if(route==='my-access'&&!b&&role==='teacher')return {active:true,approved:true,tuition};
       if(route==='my-monthly'&&!b&&role==='teacher'){const q=new URLSearchParams(qs);return arrivalSummary(data.records.filter(r=>r.data.teacherId===data.user.id),q.get('month')||'');}
       if(route==='arrivals/check'&&b&&role==='teacher'){const {date,time}=dateParts(),old=data.records.find(r=>r.kind==='arrivals'&&r.data.teacherId===data.user.id&&r.data.date===date);if(b.action==='in'){if(!old)data.records.unshift({id:'demo-'+crypto.randomUUID(),kind:'arrivals',updated_at:new Date().toISOString(),data:{teacherId:data.user.id,name:data.user.name,detail:date,extra:time+' / ',date,startTime:time,endTime:''}});}else if(b.action==='out'){if(!old||old.data.endTime)fail('Kelish belgilanmagan yoki ketish allaqachon belgilangan');old.data.endTime=time;old.data.extra=old.data.startTime+' / '+time;}else fail('Amalni tanlang');log('save','Kelish-ketish');return {ok:true};}
+      if(route==='schedule-imports'){if(role!=='zavuch')fail('Faqat zavuch uchun',403);data.scheduleImports||=[];if(!b)return {imports:clone(data.scheduleImports.map(({base64,extracted,...i})=>i)),revision:scheduleRevision(data.records)};if(data.scheduleImports.some(i=>i.id===b.importId))return {ok:true,repeated:true,added:0};if(b.revision!==scheduleRevision(data.records))fail('Jadval o‘zgargan. Joriy holatni yangilang.',409);const p=planScheduleImport(b,data.records,data.teachers,data.assignments,fail);if(p.createdGroup)data.records.push(p.group);data.records=data.records.filter(r=>!p.removeIds.includes(r.id));data.records.push(...p.added.map(r=>({...r,updated_at:new Date().toISOString()})));data.assignments.push(...p.links);data.scheduleImports.push({id:b.importId,group_name:p.group.data.name,group_id:p.group.id,name:b.name,base64:b.base64,row_count:p.added.length,created_at:new Date().toISOString()});log('save','Jadval yuklandi');return {ok:true,groupId:p.group.id,createdGroup:p.createdGroup,added:p.added.length,duplicates:p.duplicateCount,pending:p.pending.length};}
       if (route==='records' && !b) return {records:clone(data.records.filter(r=>visibleRecord(data.user,r,data.assignments,data.records)))};
       if (route==='records' && b) {
         if (!modules.includes(b.kind) || ['preparation','monthly','assignments','curricula'].includes(b.kind)||(role==='teacher'&&!['attendance','grades'].includes(b.kind))) fail('Bu bo‘limga ruxsat berilmagan',403);
@@ -112,7 +115,7 @@ export function createDemo(role, options = {}) {
         if (b.id && (!old||!editableRecord(data.user,old,data.assignments,data.records))) fail('Yozuvga ruxsat yo‘q',403);
         if (b.action==='delete') data.records=data.records.filter(r=>r!==old);
         else {
-          b={...b,data:normalizeSchoolRecord(data.user,b.kind,b.data,data.records,data.assignments,fail)};
+          if(['students','teachers'].includes(b.kind))b={...b,data:{...old?.data,...b.data}};if(b.kind==='schedule'&&b.data.groupId){const group=data.records.find(r=>r.id===b.data.groupId);const plan=planScheduleImport({groupId:group.id,groupName:group.data.name,rows:[{teacherName:'',teacherId:'',room:'',part:'',...b.data}],reviewed:true},data.records.filter(r=>r!==old),data.teachers,data.assignments,fail);if(!plan.added.length)fail('Bu dars mavjud');data.assignments.push(...plan.links);b={...b,data:plan.added[0].data};}b={...b,data:normalizeSchoolRecord(data.user,b.kind,b.data,data.records,data.assignments,fail)};validateProfile(b.data,fail);
           if (!b.data || typeof b.data.name!=='string' || !b.data.name.trim() || ['name','detail','extra'].some(k=>typeof b.data[k]!=='string'||b.data[k].length>250)) fail('Maydonlarni tekshiring');
           const r={id:old?.id||'demo-'+crypto.randomUUID(),kind:b.kind,data:clone(b.data),updated_at:new Date().toISOString()};
           if (old) data.records.splice(data.records.indexOf(old),1,r); else data.records.unshift(r);
@@ -141,6 +144,7 @@ export function createDemo(role, options = {}) {
       }
       fail('Bu amal namoyish rejimida mavjud emas',403);
     },
+    async scheduleFile(id){if(role!=='zavuch')fail('Faqat zavuch uchun',403);const f=data.scheduleImports?.find(f=>f.id===id);if(!f)fail('Fayl topilmadi',404);return {name:f.name,blob:new Blob([Uint8Array.from(atob(f.base64),c=>c.charCodeAt(0))])};},
     async downloadLesson(id,index,format){const p=data.programs.find(p=>p.id===id),r=data.lessons?.[id]?.[index];if(!p||!r)fail('Hujjat topilmadi',404);if(r.hash!==sourceStamp(p.data,index))fail('Mavzu o‘zgargan. Hujjatni ochib moslashtiring va saqlang.',409);return request('lesson-export',{data:p.data,index,lesson:r.data,format},true);},
     async download(id, format) {
       const p=data.programs.find(p=>p.id===id); if (!p) fail('Dastur topilmadi',404);

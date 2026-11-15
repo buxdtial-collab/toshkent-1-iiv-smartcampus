@@ -32,7 +32,7 @@ export function normalizeSchoolRecord(user,kind,input,records,assignments,fail){
   if(user.role==='zavuch'&&!d.groupId&&!d.teacherId&&!d.studentId)return d;
   if(!group)fail('Guruhni tanlang');
   if(user.role==='teacher')d.teacherId=user.id;
-  if(!assignments.some(a=>a.teacherId===d.teacherId&&a.groupId===d.groupId&&a.subject===d.subject))fail('Fan va guruh o‘qituvchiga biriktirilmagan',403);
+  if(!(kind==='schedule'&&user.role==='zavuch'&&!d.teacherId)&&!assignments.some(a=>a.teacherId===d.teacherId&&a.groupId===d.groupId&&a.subject===d.subject))fail('Fan va guruh o‘qituvchiga biriktirilmagan',403);
   if(kind==='schedule'){
    if(!/^[1-6]$/.test(d.weekday||'')||!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.startTime||'')||!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.endTime||'')||d.endTime<=d.startTime)fail('Hafta kuni va dars vaqtini tekshiring');
    d.name=d.subject;d.detail=group.data.name+' / '+['','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'][Number(d.weekday)];d.extra=d.startTime+'–'+d.endTime+' / '+(d.room||'');

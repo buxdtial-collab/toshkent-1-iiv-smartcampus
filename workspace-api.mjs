@@ -1,3 +1,4 @@
+import {planScheduleImport} from './public/schedule-model.js';
 import {token,validateRecord,permitted,kinds} from './security.mjs';
 import {visibleRecord,editableRecord,normalizeSchoolRecord,arrivalSummary,dateParts,tuition} from './public/workspace-model.js';
 
@@ -29,7 +30,7 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit}
  }
  if(u.role==='admin')fail('O‘quv ma’lumotlari zavuch kabinetida',403);
  if(path==='/api/assignments'){
-  if(req.method==='GET'){const assignments=await assignmentRows(pool,u);const teachers=u.role==='zavuch'?(await pool.query("SELECT id,name FROM campus_users WHERE role='teacher' ORDER BY name")).rows:[];json(res,200,{assignments,teachers});return true;}
+  if(req.method==='GET'){const assignments=await assignmentRows(pool,u);const teachers=u.role==='zavuch'?(await pool.query("SELECT id,name,email,active FROM campus_users WHERE role='teacher' ORDER BY name")).rows:[];json(res,200,{assignments,teachers});return true;}
   if(req.method==='POST'){
    if(u.role!=='zavuch')fail('Guruh va fanni faqat zavuch biriktiradi',403);const b=await body(req);
    if(b.action==='delete'){await pool.query('DELETE FROM campus_assignments WHERE id=$1',[String(b.id)]);await audit(u,'assignment','Dars biriktirishi olib tashlandi');json(res,200,{ok:true});return true;}
@@ -58,7 +59,10 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit}
    if(u.role==='teacher'&&!['attendance','grades'].includes(b.kind))fail('Faqat davomat va baho kiritish mumkin',403);
    if(b.action==='delete'){if(!old)fail('Yozuv topilmadi',404);await pool.query('DELETE FROM campus_records WHERE id=$1',[old.id]);}
    else{
-    const data=validateRecord(normalizeSchoolRecord(u,b.kind,b.data,records,assignments,fail));if(!data)fail('Maydonlarni tekshiring');
+    let input=['students','teachers'].includes(b.kind)?{...old?.data,...b.data}:b.data;
+    if(b.kind==='schedule'&&u.role==='zavuch'&&input.groupId){const group=records.find(r=>r.id===input.groupId&&r.kind==='groups');if(!group)fail('Guruhni tanlang');const teachers=(await pool.query("SELECT id,name FROM campus_users WHERE role='teacher'")).rows;const preview=planScheduleImport({groupId:group.id,groupName:group.data.name,rows:[{teacherName:'',teacherId:'',room:'',part:'',...input}],reviewed:true},records.filter(r=>r.id!==old?.id),teachers,assignments,fail,token);if(!preview.added.length)fail('Bu dars jadvalda allaqachon bor');input=preview.added[0].data;for(const a of preview.links)await pool.query('INSERT INTO campus_assignments(id,teacher_id,group_id,subject) VALUES($1,$2,$3,$4) ON CONFLICT(teacher_id,group_id,subject) DO NOTHING',[a.id,a.teacherId,a.groupId,a.subject]);assignments.push(...preview.links);}
+    if(b.kind==='teachers'&&input.teacherAccountId&&!(await pool.query("SELECT id FROM campus_users WHERE id=$1 AND role='teacher'",[input.teacherAccountId])).rowCount)fail('O‘qituvchi hisobini tanlang');
+    const data=validateRecord(normalizeSchoolRecord(u,b.kind,input,records,assignments,fail));if(!data)fail('Maydonlarni tekshiring');
     if(old)await pool.query('UPDATE campus_records SET data=$1,updated_at=now() WHERE id=$2',[data,old.id]);else await pool.query('INSERT INTO campus_records(id,kind,data) VALUES($1,$2,$3)',[token(),b.kind,data]);
    }
    await audit(u,b.action==='delete'?'delete':'save',b.kind);json(res,200,{ok:true});return true;
