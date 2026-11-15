@@ -2,7 +2,7 @@ import {teacherModules} from './public/workspace-model.js';
 import { randomBytes, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 const derive=promisify(scrypt);
-export const kinds=['students','staff','groups','schedule','attendance','preparation','teachers','grades','arrivals','monthly','graduates','rooms','announcements','assignments','curricula','mock'];
+export const kinds=['students','staff','groups','schedule','attendance','preparation','teachers','grades','arrivals','monthly','graduates','rooms','announcements','assignments','curricula'];
 export const token=()=>randomBytes(32).toString('base64url');
 export const digest=s=>createHash('sha256').update(String(s)).digest('hex');
 export function equal(a,b){return timingSafeEqual(Buffer.from(digest(a)),Buffer.from(digest(b)))}

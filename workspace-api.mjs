@@ -3,7 +3,6 @@ import {visibleRecord,editableRecord,normalizeSchoolRecord,arrivalSummary,datePa
 
 export async function initializeWorkspace(pool){await pool.query(`
  CREATE TABLE IF NOT EXISTS campus_assignments(id text PRIMARY KEY,teacher_id text NOT NULL REFERENCES campus_users(id),group_id text NOT NULL REFERENCES campus_records(id) ON DELETE CASCADE,subject text NOT NULL,UNIQUE(teacher_id,group_id,subject));
- CREATE TABLE IF NOT EXISTS campus_settings(key text PRIMARY KEY,value text NOT NULL);
  CREATE TABLE IF NOT EXISTS campus_curricula(id text PRIMARY KEY,title text NOT NULL,year text NOT NULL,name text NOT NULL,mime text NOT NULL,bytes bytea NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
  ALTER TABLE campus_users ADD COLUMN IF NOT EXISTS payment_amount integer NOT NULL DEFAULT 0;
  ALTER TABLE campus_users ADD COLUMN IF NOT EXISTS payment_approved_at timestamptz;
@@ -11,7 +10,7 @@ export async function initializeWorkspace(pool){await pool.query(`
  `)}
 const assignmentRows=async(pool,u)=>(await pool.query('SELECT id,teacher_id AS "teacherId",group_id AS "groupId",subject FROM campus_assignments'+(u.role==='teacher'?' WHERE teacher_id=$1':''),u.role==='teacher'?[u.id]:[])).rows;
 export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit}){
- const supported=['/api/assignments','/api/records','/api/my-monthly','/api/arrivals/check','/api/mock-settings','/api/my-access','/api/curricula'];
+ const supported=['/api/assignments','/api/records','/api/my-monthly','/api/arrivals/check','/api/my-access','/api/curricula'];
  if(!supported.includes(path)&&!path.startsWith('/api/curricula/'))return false;
  if(path==='/api/my-access'&&req.method==='GET'){if(u.role!=='teacher')fail('Faqat o‘qituvchining o‘z holati',403);json(res,200,{active:u.active,approved:u.payment_approved,approvedAt:u.payment_approved_at,tuition});return true;}
  if(path.startsWith('/api/curricula')){
@@ -29,11 +28,6 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit}
   await pool.query('INSERT INTO campus_curricula(id,title,year,name,mime,bytes) VALUES($1,$2,$3,$4,$5,$6)',[token(),b.title.trim(),b.year,b.name,mime,bytes]);json(res,200,{ok:true});return true;
  }
  if(u.role==='admin')fail('O‘quv ma’lumotlari zavuch kabinetida',403);
- if(path==='/api/mock-settings'){
-  if(req.method==='GET'){json(res,200,{url:(await pool.query("SELECT value FROM campus_settings WHERE key='mock_url'")).rows[0]?.value||''});return true;}
-  if(req.method==='POST'){if(u.role!=='zavuch')fail('Faqat zavuch uchun',403);const b=await body(req);let url;try{url=b.url?new URL(b.url):null}catch{fail('HTTPS manzilni kiriting')}
-   if(url&&(url.protocol!=='https:'||url.username||url.password||url.href.length>500))fail('HTTPS manzilni kiriting');await pool.query("INSERT INTO campus_settings(key,value) VALUES('mock_url',$1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[url?.href||'']);json(res,200,{ok:true});return true;}
- }
  if(path==='/api/assignments'){
   if(req.method==='GET'){const assignments=await assignmentRows(pool,u);const teachers=u.role==='zavuch'?(await pool.query("SELECT id,name FROM campus_users WHERE role='teacher' ORDER BY name")).rows:[];json(res,200,{assignments,teachers});return true;}
   if(req.method==='POST'){
@@ -58,7 +52,7 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit}
   const records=(await pool.query('SELECT * FROM campus_records ORDER BY updated_at DESC,id DESC')).rows,assignments=await assignmentRows(pool,u);
   if(req.method==='GET'){json(res,200,{records:records.filter(r=>visibleRecord(u,r,assignments,records))});return true;}
   if(req.method==='POST'){
-   const b=await body(req);if(!kinds.includes(b.kind)||['preparation','monthly','curricula','assignments','accessstatus','mock'].includes(b.kind)||!permitted(u,b.kind))fail('Bu bo‘limga ruxsat yo‘q',403);
+   const b=await body(req);if(!kinds.includes(b.kind)||['preparation','monthly','curricula','assignments','accessstatus'].includes(b.kind)||!permitted(u,b.kind))fail('Bu bo‘limga ruxsat yo‘q',403);
    const old=b.id?records.find(r=>r.id===b.id&&r.kind===b.kind):null;
    if(b.id&&(!old||!editableRecord(u,old,assignments,records)))fail('Bu yozuvga ruxsat yo‘q',403);
    if(u.role==='teacher'&&!['attendance','grades'].includes(b.kind))fail('Faqat davomat va baho kiritish mumkin',403);

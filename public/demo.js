@@ -1,5 +1,5 @@
 import {teacherModules,visibleRecord,editableRecord,normalizeSchoolRecord,arrivalSummary,dateParts,tuition} from './workspace-model.js';
-const modules = ['students','staff','groups','schedule','attendance','preparation','teachers','grades','arrivals','monthly','graduates','rooms','assignments','announcements','curricula','mock'];
+const modules = ['students','staff','groups','schedule','attendance','preparation','teachers','grades','arrivals','monthly','graduates','rooms','assignments','announcements','curricula'];
 const clone = value => structuredClone(value);
 const fail = (message, status = 400) => { throw Object.assign(Error(message), { status }); };
 
@@ -58,7 +58,7 @@ export function seedDemo(role, date = new Date()) {
       {title:'Tenglamalarga doir masalalar',type:'Amaliy',hours:2,selfHours:1,content:'Masala shartidan tenglama tuzish, yechish va javobni izohlash.',homework:'Ikkita matnli masala yechish.',independentTask:'Mustaqil masala tuzish.',reference:'Sinov mashqlar to‘plami',date:'',note:'Namoyish'}
     ]
   };
-  return { user, records, assignments,teachers:[{id:'demo-teacher',name:'Namuna o‘qituvchi'}],mockUrl:'',curricula:[], programs:[{id:'demo-program',owner_id:user.id,owner_name:user.name,data,updated_at:date.toISOString()}], audit:[] };
+  return { user, records, assignments,teachers:[{id:'demo-teacher',name:'Namuna o‘qituvchi'}],curricula:[], programs:[{id:'demo-program',owner_id:user.id,owner_name:user.name,data,updated_at:date.toISOString()}], audit:[] };
 }
 export function demoMonthly(records, month, group = '') {
   const summary = new Map(); let undated = 0;
@@ -102,13 +102,11 @@ export function createDemo(role, options = {}) {
       if(route==='assignments'&&b){if(role!=='zavuch')fail('Faqat zavuch uchun',403);if(b.action==='delete')data.assignments=data.assignments.filter(a=>a.id!==b.id);else{if(!data.teachers.some(t=>t.id===b.teacherId)||!data.records.some(r=>r.kind==='groups'&&r.id===b.groupId)||typeof b.subject!=='string'||!b.subject.trim())fail('Fan, guruh va o‘qituvchini tanlang');if(!data.assignments.some(a=>a.teacherId===b.teacherId&&a.groupId===b.groupId&&a.subject===b.subject.trim()))data.assignments.push({id:'demo-'+crypto.randomUUID(),teacherId:b.teacherId,groupId:b.groupId,subject:b.subject.trim()});}log('save','Dars biriktirildi');return {ok:true};}
       if(route==='curricula'&&!b)return {curricula:[]};
       if(route==='my-access'&&!b&&role==='teacher')return {active:true,approved:true,tuition};
-      if(route==='mock-settings'&&!b)return {url:data.mockUrl||''};
-      if(route==='mock-settings'&&b){if(role!=='zavuch')fail('Faqat zavuch uchun',403);let url;try{url=b.url?new URL(b.url):null}catch{fail('HTTPS manzilni kiriting')}if(url&&(url.protocol!=='https:'||url.username||url.password||url.href.length>500))fail('HTTPS manzilni kiriting');data.mockUrl=url?.href||'';save();return {ok:true};}
       if(route==='my-monthly'&&!b&&role==='teacher'){const q=new URLSearchParams(qs);return arrivalSummary(data.records.filter(r=>r.data.teacherId===data.user.id),q.get('month')||'');}
       if(route==='arrivals/check'&&b&&role==='teacher'){const {date,time}=dateParts(),old=data.records.find(r=>r.kind==='arrivals'&&r.data.teacherId===data.user.id&&r.data.date===date);if(b.action==='in'){if(!old)data.records.unshift({id:'demo-'+crypto.randomUUID(),kind:'arrivals',updated_at:new Date().toISOString(),data:{teacherId:data.user.id,name:data.user.name,detail:date,extra:time+' / ',date,startTime:time,endTime:''}});}else if(b.action==='out'){if(!old||old.data.endTime)fail('Kelish belgilanmagan yoki ketish allaqachon belgilangan');old.data.endTime=time;old.data.extra=old.data.startTime+' / '+time;}else fail('Amalni tanlang');log('save','Kelish-ketish');return {ok:true};}
       if (route==='records' && !b) return {records:clone(data.records.filter(r=>visibleRecord(data.user,r,data.assignments,data.records)))};
       if (route==='records' && b) {
-        if (!modules.includes(b.kind) || ['preparation','monthly','assignments','curricula','mock'].includes(b.kind)||(role==='teacher'&&!['attendance','grades'].includes(b.kind))) fail('Bu bo‘limga ruxsat berilmagan',403);
+        if (!modules.includes(b.kind) || ['preparation','monthly','assignments','curricula'].includes(b.kind)||(role==='teacher'&&!['attendance','grades'].includes(b.kind))) fail('Bu bo‘limga ruxsat berilmagan',403);
         const old = b.id && data.records.find(r=>r.id===b.id && r.kind===b.kind);
         if (b.id && (!old||!editableRecord(data.user,old,data.assignments,data.records))) fail('Yozuvga ruxsat yo‘q',403);
         if (b.action==='delete') data.records=data.records.filter(r=>r!==old);

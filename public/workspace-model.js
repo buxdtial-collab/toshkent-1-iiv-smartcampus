@@ -1,4 +1,4 @@
-export const teacherModules=['preparation','schedule','attendance','grades','arrivals','monthly','students','groups','announcements','accessstatus','curricula','mock'];
+export const teacherModules=['preparation','schedule','attendance','grades','arrivals','monthly','students','groups','announcements','accessstatus','curricula'];
 export const tuition={amount:400000,currency:'UZS',frequency:'once'};
 export function dateParts(now=new Date()){
  const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tashkent',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now);

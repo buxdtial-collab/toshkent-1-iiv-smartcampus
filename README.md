@@ -41,4 +41,4 @@ O‘qituvchi faqat o‘z fanlari, jadvali, guruhlari va o‘quvchilarini ko‘ra
 
 O‘qituvchi to‘lovi bir martalik 400 000 so‘m. Faqat texnik administrator tasdiqlaydi. Tasdiq summasi va sanasi saqlanadi; kirish to‘xtatilganda oldingi to‘lov o‘chirilmaydi. Qayta taklif oldindan tasdiqlangan hisob uchun qayta to‘lov talab qilmaydi. Zavuch bepul.
 
-«Ishchi o‘quv rejalar» bo‘limiga faqat platforma egasi PDF/DOCX/XLSX fayllarini (5 MB gacha) yuklaydi. Faol zavuch/o‘qituvchi ularni yuklab oladi. Yuklanmagan reja uchun soxta namuna yaratilmaydi. MOCK manzilini zavuch «Darslarni biriktirish» bo‘limida sozlaydi; tashqi platformaga SSO va'da qilinmaydi.
+«Ishchi o‘quv rejalar» bo‘limiga faqat platforma egasi PDF/DOCX/XLSX fayllarini (5 MB gacha) yuklaydi. Faol zavuch/o‘qituvchi ularni yuklab oladi. Yuklanmagan reja uchun soxta namuna yaratilmaydi.
