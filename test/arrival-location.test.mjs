@@ -6,7 +6,7 @@ import {visibleRecord} from '../public/workspace-model.js';
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const position=(meters=0,now=Date.now())=>({latitude:campusLocation.latitude+meters/6371000*180/Math.PI,longitude:campusLocation.longitude,accuracy:8,timestamp:now});
 test('owner supplied center and 150m boundary are enforced without expanding for accuracy',()=>{
- assert.equal(campusLocation.latitude,41.316944);assert.equal(campusLocation.longitude,69.349938);assert.equal(campusLocation.radiusMeters,150);
+ assert.equal(campusLocation.latitude,41.316702);assert.equal(campusLocation.longitude,69.349730);assert.equal(campusLocation.radiusMeters,150);
  const now=Date.now();assert.equal(campusDistance(campusLocation.latitude,campusLocation.longitude),0);
  assert.equal(validateArrivalPosition(position(149.99,now),now).distanceMeters,150);
  assert.throws(()=>validateArrivalPosition({...position(150.01,now),accuracy:1},now),{status:403});
@@ -14,7 +14,7 @@ test('owner supplied center and 150m boundary are enforced without expanding for
 });
 test('missing, malformed, stale and inaccurate positions cannot pass',()=>{
  const now=Date.now(),p=position(0,now);
- for(const bad of [null,{}, {...p,latitude:'41.316944'},{...p,latitude:NaN},{...p,longitude:Infinity},{...p,latitude:91},{...p,longitude:181},{...p,accuracy:-1},{...p,accuracy:101},{...p,timestamp:now-120001},{...p,timestamp:now+30001}])assert.throws(()=>validateArrivalPosition(bad,now),{status:400});
+ for(const bad of [null,{}, {...p,latitude:'41.316702'},{...p,latitude:NaN},{...p,longitude:Infinity},{...p,latitude:91},{...p,longitude:181},{...p,accuracy:-1},{...p,accuracy:101},{...p,timestamp:now-120001},{...p,timestamp:now+30001}])assert.throws(()=>validateArrivalPosition(bad,now),{status:400});
  assert.deepEqual(Object.keys(validateArrivalPosition(p,now)),['distanceMeters','accuracyMeters','checkedAt']);
 });
 test('browser location is a fresh one-shot request and handles permission denial',async()=>{

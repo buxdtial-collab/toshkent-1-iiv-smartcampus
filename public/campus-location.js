@@ -1,8 +1,8 @@
-// School location supplied by the platform owner; Plus Code 888X+QXG, Toshkent.
+// Attendance boundary center corrected by the platform owner.
 export const campusLocation=Object.freeze({
  address:'Toshkent shahri, Mirzo Ulug‘bek tumani, Qorasuv-6 mavzesi, Gyote ko‘chasi, 54-uy',
- latitude:41.316944,longitude:69.349938,radiusMeters:150,maxAccuracyMeters:100,maxAgeMs:120000,
- mapsUrl:'https://www.google.com/maps/search/?api=1&query=41.316944,69.349938'
+ latitude:41.316702,longitude:69.349730,radiusMeters:150,maxAccuracyMeters:100,maxAgeMs:120000,
+ mapsUrl:'https://www.google.com/maps/search/?api=1&query=41.316702,69.349730'
 });
 const error=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 export function campusDistance(latitude,longitude){
