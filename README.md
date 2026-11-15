@@ -33,3 +33,12 @@ Forms follow user-supplied 2026-09-17 order 396 appendices. Working program: dir
 `/?demo=zavuch` va `/?demo=teacher` parolsiz, namunaviy kabinetlarni ochadi. Namoyish brauzer sessionStorage xotirasida har bir rol uchun alohida ishlaydi. Tahrir, CSV import/eksport va oylik tabel sinov yozuvlarida bajariladi. Namoyish haqiqiy /api/records, /api/members, /api/preparation yoki sessiyalardan foydalanmaydi.
 
 `/api/demo/upload`, `/api/demo/validate` va `/api/demo/export` faqat yuborilgan fayl yoki dasturni qayta ishlaydigan stateless yordamchi endpointlar. Ular DBga ulanmaydi, hisob ochmaydi, ruxsat yoki cookie bermaydi. Origin/JSON/hajm cheklovlari qo‘llanadi. Yuklangan fayl bazaga yozilmaydi. Word eksportida NAMOYISH belgisi bor. Haqiqiy hisoblar uchun login va to‘lov/ruxsat nazorati saqlanadi.
+
+## Shaxsiy o‘qituvchi kabineti
+Zavuch «Darslarni biriktirish» bo‘limida mavjud o‘qituvchi hisobini fan va guruhga bog‘laydi. Jadval, davomat va baho shakllari shu biriktirishni tanlaydi; o‘quvchilar guruh IDsi bilan saqlanadi. Eski uch ustunli o‘quvchilar importida guruh nomi yagona va aynan mos bo‘lsa guruh aniqlanadi. Eski jadval/davomat/baho yozuvlari tahrirlanib aniq biriktirilmaguncha faqat zavuchga ko‘rinadi.
+
+O‘qituvchi faqat o‘z fanlari, jadvali, guruhlari va o‘quvchilarini ko‘radi; o‘z darslari uchun davomat/baho kiritadi. Kelish-ketish serverdagi Toshkent vaqti bilan belgilanadi; shaxsiy oylik tabel shu yozuvlardan jamlanadi. Guruh biriktirish, to‘lov tasdiqlash yoki boshqa o‘qituvchining yozuvini o‘zgartirishga ruxsat yo‘q. Zavuchning amallar tarixida to‘lov va hisob boshqaruvi voqealari ko‘rsatilmaydi.
+
+O‘qituvchi to‘lovi bir martalik 400 000 so‘m. Faqat texnik administrator tasdiqlaydi. Tasdiq summasi va sanasi saqlanadi; kirish to‘xtatilganda oldingi to‘lov o‘chirilmaydi. Qayta taklif oldindan tasdiqlangan hisob uchun qayta to‘lov talab qilmaydi. Zavuch bepul.
+
+«Ishchi o‘quv rejalar» bo‘limiga faqat platforma egasi PDF/DOCX/XLSX fayllarini (5 MB gacha) yuklaydi. Faol zavuch/o‘qituvchi ularni yuklab oladi. Yuklanmagan reja uchun soxta namuna yaratilmaydi. MOCK manzilini zavuch «Darslarni biriktirish» bo‘limida sozlaydi; tashqi platformaga SSO va'da qilinmaydi.

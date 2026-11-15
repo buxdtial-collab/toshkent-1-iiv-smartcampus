@@ -16,7 +16,9 @@ test('demo edits stay per role and cannot authorize users or enter live APIs',as
   const z=createDemo('zavuch',{storage,transport}),t=createDemo('teacher',{storage,transport});
   await z.api('records',{kind:'students',data:{name:'Only in preview',detail:'101',extra:''}});
   assert.ok((await createDemo('zavuch',{storage,transport}).api('records')).records.some(r=>r.data.name==='Only in preview'));
-  assert.deepEqual((await t.api('records')).records,[]);
+  assert.equal((await t.api('records')).records.some(r=>r.data.name==='Only in preview'),false);
+  assert.ok((await t.api('records')).records.some(r=>r.kind==='schedule'));
+  assert.ok((await t.api('me')).permissions.includes('groups'));
   for(const path of ['members','technical','login','setup','activate','logout','demo/anything']) await assert.rejects(z.api(path,{}),{status:403});
   await assert.rejects(t.api('records',{kind:'students',data:{name:'x',detail:'',extra:''}}),{status:403});
   await assert.rejects(t.api('monthly?month=2026-11'),{status:403});
