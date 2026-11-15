@@ -44,3 +44,55 @@ test('accepted arrival and departure use session identity, server time and only 
  const out=f.writes[1];assert.match(out.sql,/departureLocation/);assert.match(out.sql,/COALESCE\(data->>'endTime',''\)=''/);assert.ok(out.args[0].startsWith('arrival:teacher-a:'));assert.equal(JSON.parse(out.args[2]).distanceMeters,90);assert.equal(out.args[2].includes('latitude'),false);
  const record={kind:'arrivals',data};assert.equal(visibleRecord(f.base.u,record,[],[]),true);assert.equal(visibleRecord({id:'foreign',role:'teacher'},record,[],[]),false);
 });
+
+import {createDemo,seedDemo} from '../public/demo.js';
+import {dateParts} from '../public/workspace-model.js';
+import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+
+test('passwordless demo rejects outside and missing GPS without adding or completing a mark',async()=>{
+ const demo=createDemo('teacher',{storage:null,transport:()=>{throw Error('No live requests')}});
+ const before=(await demo.api('records')).records;
+ for(const action of ['in','out'])for(const p of [undefined,position(500)])await assert.rejects(demo.api('arrivals/check',{action,position:p}));
+ assert.deepEqual((await demo.api('records')).records,before);
+ await demo.api('arrivals/check',{action:'in',position:position(50)});
+ const afterIn=(await demo.api('records')).records;
+ await assert.rejects(demo.api('arrivals/check',{action:'out',position:position(500)}),/Siz GPS zonasida emassiz/);
+ assert.deepEqual((await demo.api('records')).records,afterIn);
+ await demo.api('arrivals/check',{action:'out',position:position(50)});
+ const own=(await demo.api('records')).records.find(r=>r.kind==='arrivals'&&r.data.date===dateParts().date&&r.data.arrivalLocation);
+ assert.ok(own.data.departureLocation);assert.equal(own.data.arrivalLocation.distanceMeters,50);
+});
+test('old GPS-free demo marks remain labeled history and do not block a valid new check-in',async()=>{
+ const state=seedDemo('teacher'),today=dateParts().date;
+ state.records.push({id:'old-unverified',kind:'arrivals',data:{teacherId:state.user.id,name:state.user.name,date:today,detail:today,startTime:'08:00',endTime:'09:00',extra:'08:00 / 09:00'}});
+ const storage={getItem:()=>JSON.stringify(state),setItem(){}};
+ const demo=createDemo('teacher',{storage});
+ await assert.rejects(demo.api('arrivals/check',{action:'out',position:position()}),/Kelish belgilanmagan/);
+ await demo.api('arrivals/check',{action:'in',position:position()});
+ const rows=(await demo.api('records')).records.filter(r=>r.kind==='arrivals'&&r.data.date===today);
+ assert.equal(rows.length,2);assert.ok(rows.some(r=>r.id==='old-unverified'&&!r.data.arrivalLocation));assert.ok(rows.some(r=>r.data.arrivalLocation&&!r.data.endTime));
+});
+test('zavuch and teacher cannot bypass GPS with generic record create, update or delete in live or demo',async()=>{
+ const writes=[];const old={id:'old',kind:'arrivals',data:{teacherId:'teacher',name:'Teacher',date:dateParts().date,detail:dateParts().date,extra:''}};
+ const pool={query:async(sql,args)=>{if(sql.startsWith('SELECT'))return {rows:sql.startsWith('SELECT * FROM campus_records')?[old]:[],rowCount:0};writes.push({sql,args});return {rows:[],rowCount:0}}};
+ for(const role of ['zavuch','teacher']){
+  const demo=createDemo(role,{storage:null});const before=(await demo.api('records')).records;
+  for(const action of [undefined,'save','delete']){
+   const b={kind:'arrivals',action,id:action?'old':undefined,data:old.data};
+   await assert.rejects(handleWorkspace({path:'/api/records',req:{method:'POST'},res:{},u:{id:'teacher',role},pool,body:async()=>b,json(){},fail,audit:async()=>{}}),{status:403});
+   await assert.rejects(demo.api('records',b),{status:403});
+  }
+  assert.deepEqual((await demo.api('records')).records,before);
+ }assert.deepEqual(writes,[]);
+});
+test('demo check-in button requests GPS and displays a persistent error instead of submitting outside',async()=>{
+ const source=(await readFile(new URL('../public/app.js',import.meta.url),'utf8')).replace(/^import .*$/gm,'').replace(/^load\(\);$/m,'');
+ const nodes=new Map();const node=k=>{if(!nodes.has(k))nodes.set(k,{innerHTML:'',textContent:'',disabled:false,className:''});return nodes.get(k)};
+ let locationRequests=0,posts=0;
+ const demo=createDemo('teacher',{storage:null});const api=demo.api.bind(demo);demo.api=async(path,b)=>{if(path==='arrivals/check'&&b)posts++;return api(path,b)};
+ const context=vm.createContext({createDemo:()=>demo,demoRole:()=> 'teacher',campusLocation,dateParts,requestArrivalPosition:async()=>{locationRequests++;throw Error('Siz GPS zonasida emassiz.');},location:{search:'?demo=teacher'},document:{querySelector:node},URLSearchParams,Intl,Date,setTimeout:()=>0,clearTimeout(){}});
+ vm.runInContext(source,context);
+ await vm.runInContext("(async()=>{state=await demo.api('me');records=(await demo.api('records')).records;page='arrivals';myArrivals();await document.querySelector('#checkin').onclick();})()",context);
+ assert.equal(locationRequests,1);assert.equal(posts,0);assert.match(node('#page').innerHTML,/role="alert">Siz GPS zonasida emassiz/);assert.equal(vm.runInContext('arrivalBusy',context),false);
+});

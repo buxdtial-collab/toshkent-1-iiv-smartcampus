@@ -1,3 +1,4 @@
+import {campusLocation} from '../public/campus-location.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {visibleRecord,editableRecord,normalizeSchoolRecord,studentGroup,tuition} from '../public/workspace-model.js';
@@ -65,7 +66,7 @@ test('teacher demo can enter attendance and own check-in without live API calls'
  const demo=createDemo('teacher',{storage:null,transport:()=>{throw Error('Live request should not occur')}});
  const {records}=await demo.api('records'),student=records.find(r=>r.kind==='students'),{assignments}=await demo.api('assignments'),a=assignments[0];
  await demo.api('records',{kind:'attendance',data:{groupId:a.groupId,studentId:student.id,subject:a.subject,date:'2026-11-15',status:'Keldi'}});
- await demo.api('arrivals/check',{action:'in'});await demo.api('arrivals/check',{action:'out'});
+ const position={latitude:campusLocation.latitude,longitude:campusLocation.longitude,accuracy:5,timestamp:Date.now()};await demo.api('arrivals/check',{action:'in',position});await demo.api('arrivals/check',{action:'out',position});
  await assert.rejects(demo.api('assignments',{teacherId:'demo-teacher',groupId:'x',subject:'x'}),{status:403});
  assert.ok((await demo.api('my-access')).approved);
 });

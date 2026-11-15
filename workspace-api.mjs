@@ -57,7 +57,7 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit,
   const records=(await pool.query('SELECT * FROM campus_records ORDER BY updated_at DESC,id DESC')).rows,assignments=await assignmentRows(pool,u);
   if(req.method==='GET'){json(res,200,{records:records.filter(r=>visibleRecord(u,r,assignments,records))});return true;}
   if(req.method==='POST'){
-   const b=await body(req);if(b.kind==='teachers'){json(res,200,await saveTeacherRoster({u,pool,b,fail}));return true;}if(yearPhase!=='active'&&['attendance','grades'].includes(b.kind))fail('Yangi o‘quv yili 2-sentabrda boshlanadi.',409);if(!kinds.includes(b.kind)||['preparation','monthly','curricula','assignments','accessstatus'].includes(b.kind)||!permitted(u,b.kind))fail('Bu bo‘limga ruxsat yo‘q',403);
+   const b=await body(req);if(b.kind==='arrivals')fail('Kelish-ketish faqat o‘qituvchining «Keldim» va «Ketdim» tugmalari orqali GPS hududida qayd etiladi.',403);if(b.kind==='teachers'){json(res,200,await saveTeacherRoster({u,pool,b,fail}));return true;}if(yearPhase!=='active'&&['attendance','grades'].includes(b.kind))fail('Yangi o‘quv yili 2-sentabrda boshlanadi.',409);if(!kinds.includes(b.kind)||['preparation','monthly','curricula','assignments','accessstatus'].includes(b.kind)||!permitted(u,b.kind))fail('Bu bo‘limga ruxsat yo‘q',403);
    const old=b.id?records.find(r=>r.id===b.id&&r.kind===b.kind):null;
    if(b.id&&(!old||!editableRecord(u,old,assignments,records)))fail('Bu yozuvga ruxsat yo‘q',403);
    if(u.role==='teacher'&&!['attendance','grades'].includes(b.kind))fail('Faqat davomat va baho kiritish mumkin',403);
