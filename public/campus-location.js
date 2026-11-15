@@ -17,7 +17,7 @@ export function validateArrivalPosition(position,now=Date.now()){
  if(now-timestamp>campusLocation.maxAgeMs||timestamp-now>30000)error('Joylashuv ma’lumoti eskirgan. Tugmani qayta bosing.');
  if(accuracy>campusLocation.maxAccuracyMeters)error('GPS aniqligi yetarli emas. Ochiqroq joyda yoki telefon orqali qayta urinib ko‘ring.');
  const distance=campusDistance(latitude,longitude);
- if(distance>campusLocation.radiusMeters)error(`Siz litsey markazidan taxminan ${Math.round(distance)} metr uzoqdasiz. Belgilash faqat ${campusLocation.radiusMeters} metr radius ichida mumkin.`,403);
+ if(distance>campusLocation.radiusMeters)error(`Siz GPS zonasida emassiz. Kelish-ketishni belgilash uchun litsey markazidan ${campusLocation.radiusMeters} metr radius ichida bo‘lishingiz kerak.`,403);
  // Keep verification metadata only; do not retain the person's raw coordinates.
  return {distanceMeters:Math.round(distance),accuracyMeters:Math.round(accuracy),checkedAt:new Date(now).toISOString()};
 }
