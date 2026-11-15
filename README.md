@@ -27,3 +27,9 @@ Students, staff, groups, schedule, and attendance lists; create/edit/delete; CSV
 Teacher accounts have access only to their own programs. Administrator provisions teacher or zavuch invitations; zavuch can review programs when granted preparation access. PDF/DOCX source upload (5 MB), extracted text and candidate topics, editable program sections, hour totals, review gate, and real DOCX exports are implemented. Scanned PDF OCR and automatic AI authoring are not provided. The teacher checks extracted source content and supplies missing subject-specific sections.
 
 Forms follow user-supplied 2026-09-17 order 396 appendices. Working program: director approves, deputy reviews. Calendar: deputy approves.
+
+
+## Parolsiz namoyish
+`/?demo=zavuch` va `/?demo=teacher` parolsiz, namunaviy kabinetlarni ochadi. Namoyish brauzer sessionStorage xotirasida har bir rol uchun alohida ishlaydi. Tahrir, CSV import/eksport va oylik tabel sinov yozuvlarida bajariladi. Namoyish haqiqiy /api/records, /api/members, /api/preparation yoki sessiyalardan foydalanmaydi.
+
+`/api/demo/upload`, `/api/demo/validate` va `/api/demo/export` faqat yuborilgan fayl yoki dasturni qayta ishlaydigan stateless yordamchi endpointlar. Ular DBga ulanmaydi, hisob ochmaydi, ruxsat yoki cookie bermaydi. Origin/JSON/hajm cheklovlari qo‘llanadi. Yuklangan fayl bazaga yozilmaydi. Word eksportida NAMOYISH belgisi bor. Haqiqiy hisoblar uchun login va to‘lov/ruxsat nazorati saqlanadi.
