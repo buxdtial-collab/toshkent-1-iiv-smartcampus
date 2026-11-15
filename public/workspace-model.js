@@ -1,3 +1,4 @@
+import {educationStatus} from './profile-model.js';
 export const teacherModules=['preparation','schedule','attendance','grades','arrivals','monthly','students','groups','announcements','accessstatus','curricula'];
 export const tuition={amount:400000,currency:'UZS',frequency:'once'};
 export function dateParts(now=new Date()){
@@ -38,6 +39,7 @@ export function normalizeSchoolRecord(user,kind,input,records,assignments,fail){
    d.name=d.subject;d.detail=group.data.name+' / '+['','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'][Number(d.weekday)];d.extra=d.startTime+'–'+d.endTime+' / '+(d.room||'');
   }else{
    const student=records.find(r=>r.id===d.studentId&&r.kind==='students');
+   if(student&&!['studying','retained'].includes(educationStatus(student.data)))fail('Ushbu holatdagi o‘quvchiga davomat yoki baho kiritilmaydi',403);
    if(!student||studentGroup(student,records)!==d.groupId)fail('O‘quvchi ushbu guruhga tegishli emas',403);
    if(!/^\d{4}-\d{2}-\d{2}$/.test(d.date||'')||Number.isNaN(Date.parse(d.date))||new Date(d.date).toISOString().slice(0,10)!==d.date)fail('Sanani tekshiring');
    d.name=student.data.name;

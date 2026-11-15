@@ -1,5 +1,6 @@
+import {academicYear,localDay,dueYearEvent,nextYear,promoteRecords,scopedArchive,archiveCounts} from './year-model.js';
 import {planScheduleImport,scheduleRevision} from './schedule-model.js';
-import {validateProfile} from './profile-model.js';
+import {validateProfile,educationStatuses,educationStatus} from './profile-model.js';
 import {generateLesson,sourceStamp,validateLesson} from './lesson-model.js';
 import {teacherModules,visibleRecord,editableRecord,normalizeSchoolRecord,arrivalSummary,dateParts,tuition} from './workspace-model.js';
 const modules = ['students','staff','groups','schedule','attendance','preparation','teachers','grades','arrivals','monthly','graduates','rooms','assignments','announcements','curricula'];
@@ -61,7 +62,7 @@ export function seedDemo(role, date = new Date()) {
       {title:'Tenglamalarga doir masalalar',type:'Amaliy',hours:2,selfHours:1,content:'Masala shartidan tenglama tuzish, yechish va javobni izohlash.',homework:'Ikkita matnli masala yechish.',independentTask:'Mustaqil masala tuzish.',reference:'Sinov mashqlar to‘plami',date:'',note:'Namoyish'}
     ]
   };
-  return { user, records, assignments,teachers:[{id:'demo-teacher',name:'Namuna o‘qituvchi'}],curricula:[], programs:[{id:'demo-program',owner_id:user.id,owner_name:user.name,data,updated_at:date.toISOString()}], audit:[] };
+  return { activeYear:academicYear(date),yearPhase:'active',startsOn:academicYear(date).slice(0,4)+'-09-02',archives:[],pending:[],archiveFiles:{},user, records, assignments,teachers:[{id:'demo-teacher',name:'Namuna o‘qituvchi'}],curricula:[], programs:[{id:'demo-program',owner_id:user.id,owner_name:user.name,data,updated_at:date.toISOString()}], audit:[] };
 }
 export function demoMonthly(records, month, group = '') {
   const summary = new Map(); let undated = 0;
@@ -90,17 +91,33 @@ export function createDemo(role, options = {}) {
   let storage = options.storage;
   if (storage === undefined) { try { storage = globalThis.sessionStorage; } catch { storage = null; } }
   const key = 'campus-demo-v2-'+role, request = options.transport || transport;
-  const initial = seedDemo(role); let data = clone(initial);
+  const now=options.now||(()=>new Date());const initial = seedDemo(role,now()); let data = clone(initial);
   try { const saved = JSON.parse(storage?.getItem(key)||'null'); if (saved && Array.isArray(saved.records) && Array.isArray(saved.programs) && Array.isArray(saved.audit)) data={...initial,...saved,user:initial.user}; } catch {}
   const save = () => { try { storage?.setItem(key,JSON.stringify(data)); } catch { /* In-memory preview remains usable if storage is full. */ } };
   const log = (action, detail) => { data.audit.unshift({action,detail,name:data.user.name,created_at:new Date().toISOString()}); data.audit=data.audit.slice(0,100); save(); };
+  const advance=()=>{
+   for(let i=0;i<40;i++){
+    const event=dueYearEvent({active_year:data.activeYear,phase:data.yearPhase,starts_on:data.startsOn},now());if(!event)return;
+    if(event==='start'){data.yearPhase='active';save();continue;}
+    const year=data.activeYear,promotion=promoteRecords(data.records,year),fileRows=[...Object.entries(data.sourceFiles||{}).map(([id,f])=>({...f,id:'source:'+id,kind:'source',owner_id:data.user.id})),...(data.scheduleImports||[]).map(f=>({...f,id:'schedule:'+f.id,kind:'schedule'}))];
+    const lessons=Object.entries(data.lessons||{}).flatMap(([program_id,items])=>Object.entries(items).map(([i,l])=>({program_id,topic_index:Number(i),source_hash:l.hash,data:clone(l.data)})));
+    const snapshot={year,records:clone(data.records),assignments:clone(data.assignments),programs:clone(data.programs),lessons,files:fileRows.map(({base64,...f})=>f)};
+    data.archives.push({year,next_year:nextYear(year),archived_at:now().toISOString(),snapshot});data.archiveFiles[year]=fileRows;
+    data.pending.push(...promotion.pending.map(item=>({id:year+':'+item.student.id,year,data:item})));
+    data.records=promotion.records;data.assignments=[];data.programs=[];data.lessons={};data.sources={};data.sourceFiles={};data.scheduleImports=[];data.activeYear=nextYear(year);data.yearPhase='preparation';data.startsOn=data.activeYear.slice(0,4)+'-09-02';save();
+   }
+   fail('Yillarni tekshirish chegarasi oshdi');
+  };
   return {
     role,
     reset() { data=clone(initial); save(); },
     async api(path, b) {
-      const [route, qs=''] = path.split('?');
+      advance();const [route, qs=''] = path.split('?');
       if (route==='status' && !b) return {setup:false};
-      if (route==='me' && !b) return {user:clone(data.user),permissions:role==='zavuch'?[...modules]:[...teacherModules]};
+      if (route==='me' && !b) return {academicYear:data.activeYear,yearPhase:data.yearPhase,user:clone(data.user),permissions:role==='zavuch'?[...modules]:[...teacherModules]};
+      if(route==='years'&&!b)return {activeYear:data.activeYear,phase:data.yearPhase,startsOn:data.startsOn,archives:data.archives.map(({snapshot,...a})=>a),pending:role==='zavuch'?clone(data.pending):[]};
+      if(route==='years/placement'&&b){if(role!=='zavuch')fail('Faqat zavuch uchun',403);if(b.year!==data.activeYear)fail('O‘quv yili o‘zgargan',409);if(!Object.hasOwn(educationStatuses,b.status)||!['1','2'].includes(b.course))fail('Holat va kursni tanlang');const item=data.pending.find(i=>i.id===b.id);if(!item)fail('Topilmadi',404);if(b.status!=='expelled'){const r=clone(item.data.student);r.kind=b.status==='graduated'?'graduates':'students';Object.assign(r.data,{educationStatus:b.status,course:b.course,active:['studying','retained'].includes(b.status),previousGroup:item.data.group?.data.name||r.data.detail,detail:b.course+'-kurs · guruhga biriktirilmagan'});delete r.data.groupId;data.records.push(r);}data.pending=data.pending.filter(i=>i!==item);save();return {ok:true};}
+      if(route.startsWith('years')){if(b)fail('Arxiv faqat ko‘rish uchun',405);const year=route.slice(6),a=data.archives.find(a=>a.year===year);if(!a)fail('Arxiv topilmadi',404);const s=scopedArchive(a.snapshot,data.user);return {...clone(s),counts:archiveCounts(s),archivedAt:a.archived_at};}
       if(route==='assignments'&&!b)return {assignments:clone(data.assignments.filter(a=>role==='zavuch'||a.teacherId===data.user.id)),teachers:role==='zavuch'?clone(data.teachers):[]};
       if(route==='assignments'&&b){if(role!=='zavuch')fail('Faqat zavuch uchun',403);if(b.action==='delete')data.assignments=data.assignments.filter(a=>a.id!==b.id);else{if(!data.teachers.some(t=>t.id===b.teacherId)||!data.records.some(r=>r.kind==='groups'&&r.id===b.groupId)||typeof b.subject!=='string'||!b.subject.trim())fail('Fan, guruh va o‘qituvchini tanlang');if(!data.assignments.some(a=>a.teacherId===b.teacherId&&a.groupId===b.groupId&&a.subject===b.subject.trim()))data.assignments.push({id:'demo-'+crypto.randomUUID(),teacherId:b.teacherId,groupId:b.groupId,subject:b.subject.trim()});}log('save','Dars biriktirildi');return {ok:true};}
       if(route==='curricula'&&!b)return {curricula:[]};
@@ -110,14 +127,15 @@ export function createDemo(role, options = {}) {
       if(route==='schedule-imports'){if(role!=='zavuch')fail('Faqat zavuch uchun',403);data.scheduleImports||=[];if(!b)return {imports:clone(data.scheduleImports.map(({base64,extracted,...i})=>i)),revision:scheduleRevision(data.records)};if(data.scheduleImports.some(i=>i.id===b.importId))return {ok:true,repeated:true,added:0};if(b.revision!==scheduleRevision(data.records))fail('Jadval o‘zgargan. Joriy holatni yangilang.',409);const p=planScheduleImport(b,data.records,data.teachers,data.assignments,fail);if(p.createdGroup)data.records.push(p.group);data.records=data.records.filter(r=>!p.removeIds.includes(r.id));data.records.push(...p.added.map(r=>({...r,updated_at:new Date().toISOString()})));data.assignments.push(...p.links);data.scheduleImports.push({id:b.importId,group_name:p.group.data.name,group_id:p.group.id,name:b.name,base64:b.base64,row_count:p.added.length,created_at:new Date().toISOString()});log('save','Jadval yuklandi');return {ok:true,groupId:p.group.id,createdGroup:p.createdGroup,added:p.added.length,duplicates:p.duplicateCount,pending:p.pending.length};}
       if (route==='records' && !b) return {records:clone(data.records.filter(r=>visibleRecord(data.user,r,data.assignments,data.records)))};
       if (route==='records' && b) {
+        if(data.yearPhase!=='active'&&['attendance','grades'].includes(b.kind))fail('Yangi o‘quv yili 2-sentabrda boshlanadi.',409);
         if (!modules.includes(b.kind) || ['preparation','monthly','assignments','curricula'].includes(b.kind)||(role==='teacher'&&!['attendance','grades'].includes(b.kind))) fail('Bu bo‘limga ruxsat berilmagan',403);
         const old = b.id && data.records.find(r=>r.id===b.id && r.kind===b.kind);
         if (b.id && (!old||!editableRecord(data.user,old,data.assignments,data.records))) fail('Yozuvga ruxsat yo‘q',403);
         if (b.action==='delete') data.records=data.records.filter(r=>r!==old);
         else {
-          if(['students','teachers'].includes(b.kind))b={...b,data:{...old?.data,...b.data}};if(b.kind==='schedule'&&b.data.groupId){const group=data.records.find(r=>r.id===b.data.groupId);const plan=planScheduleImport({groupId:group.id,groupName:group.data.name,rows:[{teacherName:'',teacherId:'',room:'',part:'',...b.data}],reviewed:true},data.records.filter(r=>r!==old),data.teachers,data.assignments,fail);if(!plan.added.length)fail('Bu dars mavjud');data.assignments.push(...plan.links);b={...b,data:plan.added[0].data};}b={...b,data:normalizeSchoolRecord(data.user,b.kind,b.data,data.records,data.assignments,fail)};validateProfile(b.data,fail);
+          if(['students','graduates','teachers'].includes(b.kind))b={...b,data:{...old?.data,...b.data}};if(b.kind==='schedule'&&b.data.groupId){const group=data.records.find(r=>r.id===b.data.groupId);const plan=planScheduleImport({groupId:group.id,groupName:group.data.name,rows:[{teacherName:'',teacherId:'',room:'',part:'',...b.data}],reviewed:true},data.records.filter(r=>r!==old),data.teachers,data.assignments,fail);if(!plan.added.length)fail('Bu dars mavjud');data.assignments.push(...plan.links);b={...b,data:plan.added[0].data};}b={...b,data:normalizeSchoolRecord(data.user,b.kind,b.data,data.records,data.assignments,fail)};validateProfile(b.data,fail);
           if (!b.data || typeof b.data.name!=='string' || !b.data.name.trim() || ['name','detail','extra'].some(k=>typeof b.data[k]!=='string'||b.data[k].length>250)) fail('Maydonlarni tekshiring');
-          const r={id:old?.id||'demo-'+crypto.randomUUID(),kind:b.kind,data:clone(b.data),updated_at:new Date().toISOString()};
+          let kind=b.kind;if(['students','graduates'].includes(kind)){const status=educationStatus(b.data,kind);b.data.educationStatus=status;b.data.active=['studying','retained'].includes(status);kind=status==='graduated'?'graduates':'students';}const r={id:old?.id||'demo-'+crypto.randomUUID(),kind,data:clone(b.data),updated_at:new Date().toISOString()};
           if (old) data.records.splice(data.records.indexOf(old),1,r); else data.records.unshift(r);
         }
         log(b.action==='delete'?'delete':'save',b.kind+': '+(b.data?.name||old?.data.name||'')); return {ok:true};
@@ -133,7 +151,7 @@ export function createDemo(role, options = {}) {
        const i=Number(lm[2]);if(b&&Number.isInteger(i)&&plan.topics[i]){if(b.hash!==sourceStamp(plan,i))fail('Dastur o‘zgargan. Mavzular ro‘yxatini yangilang.',409);const errors=validateLesson(b.data);if(errors.length)fail(errors.join('; '));saved[i]={data:clone(b.data),hash:b.hash};save();return {ok:true};}fail('Topilmadi',404);
       }
       if (route==='preparation' && !b) return {programs:clone(data.programs)};
-      if (route==='preparation/upload' && b) {const result=await request('upload',b);data.sources||={};data.sources[result.id]=result.text;save();return result;}
+      if (route==='preparation/upload' && b) {const result=await request('upload',b);data.sources||={};data.sources[result.id]=result.text;data.sourceFiles||={};data.sourceFiles[result.id]={name:b.name,base64:b.base64};save();return result;}
       if (route==='preparation' && b) {
         const old=b.id && data.programs.find(p=>p.id===b.id);
         if (b.id && !old) fail('Dastur topilmadi',404);
@@ -143,6 +161,14 @@ export function createDemo(role, options = {}) {
         log('save',b.data.subject); return {ok:true,id:p.id};
       }
       fail('Bu amal namoyish rejimida mavjud emas',403);
+    },
+    async archiveDownload(path){
+      const m=path.match(/^years\/(\d{4}-\d{4})\/(export|files|programs)(?:\/([^/]+))?(?:\/(program|calendar|lessons))?(?:\/(\d+))?$/),a=m&&data.archives.find(a=>a.year===m[1]);if(!a)fail('Arxiv topilmadi',404);const s=scopedArchive(a.snapshot,data.user);
+      if(m[2]==='export')return new Blob([JSON.stringify(s,null,2)],{type:'application/json'});
+      if(m[2]==='files'){const id=decodeURIComponent(m[3]);if(!s.files.some(f=>f.id===id))fail('Fayl topilmadi',404);const f=data.archiveFiles[m[1]].find(f=>f.id===id);return new Blob([Uint8Array.from(atob(f.base64),c=>c.charCodeAt(0))]);}
+      const p=s.programs.find(p=>p.id===m[3]);if(!p)fail('Dastur topilmadi',404);
+      if(m[4]==='lessons'){const l=s.lessons.find(l=>l.program_id===p.id&&l.topic_index===Number(m[5]));if(!l)fail('Dars hujjati topilmadi',404);return request('lesson-export',{data:p.data,index:Number(m[5]),lesson:l.data,format:'bundle'},true);}
+      return request('export',{data:p.data,format:m[4]},true);
     },
     async scheduleFile(id){if(role!=='zavuch')fail('Faqat zavuch uchun',403);const f=data.scheduleImports?.find(f=>f.id===id);if(!f)fail('Fayl topilmadi',404);return {name:f.name,blob:new Blob([Uint8Array.from(atob(f.base64),c=>c.charCodeAt(0))])};},
     async downloadLesson(id,index,format){const p=data.programs.find(p=>p.id===id),r=data.lessons?.[id]?.[index];if(!p||!r)fail('Hujjat topilmadi',404);if(r.hash!==sourceStamp(p.data,index))fail('Mavzu o‘zgargan. Hujjatni ochib moslashtiring va saqlang.',409);return request('lesson-export',{data:p.data,index,lesson:r.data,format},true);},
