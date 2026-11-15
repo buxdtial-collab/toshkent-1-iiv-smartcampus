@@ -5,12 +5,12 @@ import {handleWorkspace} from '../workspace-api.mjs';
 import {visibleRecord} from '../public/workspace-model.js';
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})};
 const position=(meters=0,now=Date.now())=>({latitude:campusLocation.latitude+meters/6371000*180/Math.PI,longitude:campusLocation.longitude,accuracy:8,timestamp:now});
-test('owner supplied center and 150m boundary are enforced without expanding for accuracy',()=>{
- assert.equal(campusLocation.latitude,41.316702);assert.equal(campusLocation.longitude,69.349730);assert.equal(campusLocation.radiusMeters,150);
+test('owner supplied center and 250m boundary are enforced without expanding for accuracy',()=>{
+ assert.equal(campusLocation.latitude,41.316702);assert.equal(campusLocation.longitude,69.349730);assert.equal(campusLocation.radiusMeters,250);
  const now=Date.now();assert.equal(campusDistance(campusLocation.latitude,campusLocation.longitude),0);
- assert.equal(validateArrivalPosition(position(149.99,now),now).distanceMeters,150);
- assert.throws(()=>validateArrivalPosition({...position(150.01,now),accuracy:1},now),{status:403});
- assert.throws(()=>validateArrivalPosition({...position(200,now),distanceMeters:0,radiusMeters:1000},now),{status:403});
+ assert.equal(validateArrivalPosition(position(249.99,now),now).distanceMeters,250);
+ assert.throws(()=>validateArrivalPosition({...position(250.01,now),accuracy:1},now),{status:403});
+ assert.throws(()=>validateArrivalPosition({...position(300,now),distanceMeters:0,radiusMeters:1000},now),{status:403});
 });
 test('missing, malformed, stale and inaccurate positions cannot pass',()=>{
  const now=Date.now(),p=position(0,now);
@@ -22,7 +22,7 @@ test('browser location is a fresh one-shot request and handles permission denial
  assert.deepEqual(result,p);assert.deepEqual(options,{enableHighAccuracy:true,timeout:20000,maximumAge:0});
  await assert.rejects(requestArrivalPosition(null),/Telefon brauzerida/);
  for(const [code,pattern] of [[1,/ruxsat berilmadi/],[2,/Joylashuv aniqlanmadi/],[3,/vaqti tugadi/]])await assert.rejects(requestArrivalPosition({getCurrentPosition(success,failure){failure({code});}}),pattern);
- await assert.rejects(requestArrivalPosition({getCurrentPosition(success){const p=position(200);success({coords:p,timestamp:p.timestamp});}}),{status:403});
+ await assert.rejects(requestArrivalPosition({getCurrentPosition(success){const p=position(300);success({coords:p,timestamp:p.timestamp});}}),{status:403});
 });
 function fixture(){
  const writes=[];let payload;const pool={query:async(sql,args)=>{writes.push({sql,args});return {rows:[{id:'own'}],rowCount:1}}};
@@ -30,7 +30,7 @@ function fixture(){
  return {base,writes,result:()=>payload};
 }
 test('real arrival route rejects missing/outside GPS for both actions before any write',async()=>{
- const f=fixture();for(const action of ['in','out'])for(const p of [undefined,position(200),{...position(),accuracy:200}]){
+ const f=fixture();for(const action of ['in','out'])for(const p of [undefined,position(300),{...position(),accuracy:200}]){
   await assert.rejects(handleWorkspace({...f.base,body:async()=>({action,position:p,demo:true,skipLocation:true})}));
  }assert.deepEqual(f.writes,[]);
  for(const role of ['admin','zavuch'])await assert.rejects(handleWorkspace({...f.base,u:{role}}),{status:403});
