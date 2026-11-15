@@ -4,3 +4,4 @@ test('password requirements enforced',()=>{assert.equal(validPassword('12345678'
 test('zavuch cannot use ungranted or administrator modules',()=>{const u={role:'zavuch',permissions:['students']};assert.equal(permitted(u,'students'),true);assert.equal(permitted(u,'staff'),false);assert.equal(permitted(u,'access'),false);assert.equal(permitted({role:'admin'},'students'),true);assert.equal(permitted({role:'admin'},'nonexistent'),false)});
 test('record validation rejects malformed and oversized values',()=>{assert.equal(validateRecord({name:'',detail:'',extra:''}),null);assert.equal(validateRecord({name:'Student',detail:123,extra:''}),null);assert.equal(validateRecord({name:'x'.repeat(251),detail:'',extra:''}),null);assert.deepEqual(validateRecord({name:' Student ',detail:'101',extra:''}),{name:'Student',detail:'101',extra:''})});
 test('token comparison handles arbitrary lengths',()=>{assert.equal(equal('a','ab'),false);assert.equal(equal('a','a'),true)});
+

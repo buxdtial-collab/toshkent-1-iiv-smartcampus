@@ -26,3 +26,4 @@ databases:
     region: frankfurt
     postgresMajorVersion: '18'
     ipAllowList: []
+

@@ -20,3 +20,10 @@ npm test
 ## Scope
 
 Students, staff, groups, schedule, and attendance lists; create/edit/delete; CSV import/export; administrator-controlled membership and audit log. Online testing, lesson generation, GPS attendance, grading, and document uploads are not implemented in this initial version.
+
+
+## Lesson preparation
+
+Teacher accounts have access only to their own programs. Administrator provisions teacher or zavuch invitations; zavuch can review programs when granted preparation access. PDF/DOCX source upload (5 MB), extracted text and candidate topics, editable program sections, hour totals, review gate, and real DOCX exports are implemented. Scanned PDF OCR and automatic AI authoring are not provided. The teacher checks extracted source content and supplies missing subject-specific sections.
+
+Forms follow user-supplied 2026-09-17 order 396 appendices. Working program: director approves, deputy reviews. Calendar: deputy approves.
