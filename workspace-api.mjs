@@ -1,3 +1,4 @@
+import {validateArrivalPosition} from './public/campus-location.js';
 import {saveTeacherRoster} from './teacher-roster.mjs';
 import {educationStatus} from './public/profile-model.js';
 import {courseNumber} from './public/year-model.js';
@@ -43,9 +44,9 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit,
   }
  }
  if(path==='/api/arrivals/check'&&req.method==='POST'){
-  if(u.role!=='teacher')fail('O‘qituvchi uchun',403);if(yearPhase!=='active')fail('Yangi o‘quv yili 2-sentabrda boshlanadi.',409);const b=await body(req),{date,time}=dateParts(),id='arrival:'+u.id+':'+date;
-  if(b.action==='in'){const data={teacherId:u.id,name:u.name,detail:date,extra:time+' / ',date,startTime:time,endTime:''};await pool.query("INSERT INTO campus_records(id,kind,data) VALUES($1,'arrivals',$2) ON CONFLICT(id) DO NOTHING",[id,data]);}
-  else if(b.action==='out'){const result=await pool.query("UPDATE campus_records SET data=jsonb_set(jsonb_set(data,'{endTime}',to_jsonb($2::text)),'{extra}',to_jsonb((data->>'startTime')||' / '||$2)),updated_at=now() WHERE id=$1 AND COALESCE(data->>'endTime','')='' RETURNING id",[id,time]);if(!result.rowCount)fail('Bugun kelish belgilanmagan yoki ketish allaqachon belgilangan');}
+  if(u.role!=='teacher')fail('O‘qituvchi uchun',403);if(yearPhase!=='active')fail('Yangi o‘quv yili 2-sentabrda boshlanadi.',409);const b=await body(req),locationCheck=validateArrivalPosition(b.position),{date,time}=dateParts(),id='arrival:'+u.id+':'+date;
+  if(b.action==='in'){const data={teacherId:u.id,name:u.name,detail:date,extra:time+' / ',date,startTime:time,endTime:'',arrivalLocation:locationCheck};await pool.query("INSERT INTO campus_records(id,kind,data) VALUES($1,'arrivals',$2) ON CONFLICT(id) DO NOTHING",[id,data]);}
+  else if(b.action==='out'){const result=await pool.query("UPDATE campus_records SET data=jsonb_set(jsonb_set(data,'{endTime}',to_jsonb($2::text)),'{extra}',to_jsonb((data->>'startTime')||' / '||$2)) || jsonb_build_object('departureLocation',$3::jsonb),updated_at=now() WHERE id=$1 AND COALESCE(data->>'endTime','')='' RETURNING id",[id,time,JSON.stringify(locationCheck)]);if(!result.rowCount)fail('Bugun kelish belgilanmagan yoki ketish allaqachon belgilangan');}
   else fail('Amalni tanlang');await audit(u,'arrival',date+' '+time);json(res,200,{ok:true});return true;
  }
  if(path==='/api/my-monthly'&&req.method==='GET'){
