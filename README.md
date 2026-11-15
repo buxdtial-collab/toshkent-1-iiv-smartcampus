@@ -19,7 +19,7 @@ npm test
 
 ## Scope
 
-Students, staff, groups, schedule, and attendance lists; create/edit/delete; CSV import/export; administrator-controlled membership and audit log. Online testing, lesson generation, GPS attendance, grading, and document uploads are not implemented in this initial version.
+Students, staff, groups, schedule, and attendance lists; create/edit/delete; CSV import/export; administrator-controlled membership and audit log. Current academic modules also include scoped grading, source and curriculum uploads, and source-based per-topic lesson drafts. Online testing and GPS attendance are not included.
 
 
 ## Lesson preparation
@@ -42,3 +42,13 @@ O‘qituvchi faqat o‘z fanlari, jadvali, guruhlari va o‘quvchilarini ko‘ra
 O‘qituvchi to‘lovi bir martalik 400 000 so‘m. Faqat texnik administrator tasdiqlaydi. Tasdiq summasi va sanasi saqlanadi; kirish to‘xtatilganda oldingi to‘lov o‘chirilmaydi. Qayta taklif oldindan tasdiqlangan hisob uchun qayta to‘lov talab qilmaydi. Zavuch bepul.
 
 «Ishchi o‘quv rejalar» bo‘limiga faqat platforma egasi PDF/DOCX/XLSX fayllarini (5 MB gacha) yuklaydi. Faol zavuch/o‘qituvchi ularni yuklab oladi. Yuklanmagan reja uchun soxta namuna yaratilmaydi.
+
+## Mavzular bo‘yicha dars hujjatlari
+PDF/DOCX yuklanganda raqamlangan mavzular va ularning mazmuni ajratiladi. O‘qituvchi rekvizitlar, mavzular va soatlarni tekshirib dasturni saqlaganda har bir mavzuga konspekt, texnologik xarita va dars ishlanmasi uchun umumiy tahrirlanadigan qoralama yaratiladi. Jadval va pedagogik topshiriqlar deterministik tuziladi; batafsil fan mazmuni manbadan olinadi. Faqat sarlavha bo‘lsa, o‘qituvchi nazariy matn qo‘shishi kerak. Bu LLM xizmati emas va tashqi pullik API talab qilmaydi.
+
+Dars davomiyligi dastlab 80 daqiqa (normativ da’vo emas), 20–240 oralig‘ida o‘zgartiriladi. Bosqichlar yig‘indisi aynan davomiylikka teng bo‘lishi shart. Qoralamalar alohida jadvalda saqlanadi; barcha mavzularni qayta tayyorlash mavjud tahrirlarni almashtirmaydi. Faqat bitta mavzu uchun aniq tasdiqlangan qayta tayyorlash tahrirni almashtiradi. Dastur ma’lumotlari o‘zgarsa hujjat eskirgan deb belgilanadi va moslashtirib saqlanmaguncha eksport to‘xtatiladi.
+
+O‘qituvchi faqat o‘z hujjatlarini, zavuch akademik hujjatlarni ko‘radi. Texnik admin bu bo‘limga kira olmaydi. Uch format Wordda yoki bitta mavzuning uch fayli ZIPda yuklanadi. Tekshirilmagan hujjatda QORALAMA belgisi bor. Namoyish ma’lumotlari alohida sessionStorage’da; `/api/demo/lesson-export` faqat yuborilgan valid ma’lumotlardan NAMOYISH hujjatini chiqaradi, DB va haqiqiy sessiyalarga ulanmaydi.
+
+## Ishchi dastur muqovasi
+Ishchi dastur eksporti fan nomiga mos och rangli, kitob va fan belgilari bilan bezatilgan birinchi sahifani yaratadi. Matematika, kimyo, biologiya, fizika, tillar/adabiyot, tarix/huquq, informatika va umumiy mavzular mavjud. Avtomatik tanlovni dastur shaklidagi muqova ro‘yxatidan o‘zgartirish mumkin. Muqova bezagi lokal SVGdan PNGga render qilinadi; hech qanday tashqi tasvir yoki shaxsiy ma’lumot yuborilmaydi. Ikkinchi sahifada KO‘RIB CHIQILDI (o‘quv ishlari bo‘yicha direktor o‘rinbosari) va TASDIQLAYMAN (direktor) bir qatorda. Taqvimning tasdiqlashi faqat o‘quv ishlari bo‘yicha direktor o‘rinbosariga tegishli.

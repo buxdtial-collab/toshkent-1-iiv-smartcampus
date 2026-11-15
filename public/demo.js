@@ -1,3 +1,4 @@
+import {generateLesson,sourceStamp,validateLesson} from './lesson-model.js';
 import {teacherModules,visibleRecord,editableRecord,normalizeSchoolRecord,arrivalSummary,dateParts,tuition} from './workspace-model.js';
 const modules = ['students','staff','groups','schedule','attendance','preparation','teachers','grades','arrivals','monthly','graduates','rooms','assignments','announcements','curricula'];
 const clone = value => structuredClone(value);
@@ -77,7 +78,7 @@ export function demoMonthly(records, month, group = '') {
 }
 async function transport(action, data, binary = false) {
   // No live API fallback and no session cookies in preview requests.
-  if (!['upload','validate','export'].includes(action)) fail('Topilmadi',404);
+  if (!['upload','validate','export','lesson-export'].includes(action)) fail('Topilmadi',404);
   const r = await fetch('/api/demo/'+action,{method:'POST',credentials:'omit',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
   if (!r.ok) { const e = await r.json(); fail(e.error,r.status); }
   return binary ? r.blob() : r.json();
@@ -122,8 +123,14 @@ export function createDemo(role, options = {}) {
       if (route==='monthly' && !b && role==='zavuch') {
         const q=new URLSearchParams(qs); return demoMonthly(data.records,q.get('month')||'',q.get('group')||'');
       }
+      const lm=route.match(/^preparation\/([^/]+)\/lessons(?:\/(generate|\d+))?$/);
+      if(lm){const program=data.programs.find(p=>p.id===lm[1]);if(!program)fail('Dastur topilmadi',404);data.lessons||={};const saved=data.lessons[program.id]||={};const plan=program.data;
+       if(!lm[2]&&!b)return {lessons:plan.topics.map((t,i)=>({index:i,title:t.title,data:clone(saved[i]?.data||null),hash:sourceStamp(plan,i),stale:!!saved[i]&&saved[i].hash!==sourceStamp(plan,i)}))};
+       if(lm[2]==='generate'&&b){if(!plan.sourceId)fail('Avval namunaviy dastur faylini yuklang');if(b.replaceIndex!==undefined&&(!Number.isInteger(b.replaceIndex)||!plan.topics[b.replaceIndex]))fail('Mavzuni tanlang');for(const [i,t]of plan.topics.entries()){if(b.replaceIndex!==undefined?i===b.replaceIndex:!saved[i])saved[i]={data:generateLesson(plan,i,data.sources?.[plan.sourceId]||''),hash:sourceStamp(plan,i)};}save();return {ok:true};}
+       const i=Number(lm[2]);if(b&&Number.isInteger(i)&&plan.topics[i]){if(b.hash!==sourceStamp(plan,i))fail('Dastur o‘zgargan. Mavzular ro‘yxatini yangilang.',409);const errors=validateLesson(b.data);if(errors.length)fail(errors.join('; '));saved[i]={data:clone(b.data),hash:b.hash};save();return {ok:true};}fail('Topilmadi',404);
+      }
       if (route==='preparation' && !b) return {programs:clone(data.programs)};
-      if (route==='preparation/upload' && b) return request('upload',b);
+      if (route==='preparation/upload' && b) {const result=await request('upload',b);data.sources||={};data.sources[result.id]=result.text;save();return result;}
       if (route==='preparation' && b) {
         const old=b.id && data.programs.find(p=>p.id===b.id);
         if (b.id && !old) fail('Dastur topilmadi',404);
@@ -134,6 +141,7 @@ export function createDemo(role, options = {}) {
       }
       fail('Bu amal namoyish rejimida mavjud emas',403);
     },
+    async downloadLesson(id,index,format){const p=data.programs.find(p=>p.id===id),r=data.lessons?.[id]?.[index];if(!p||!r)fail('Hujjat topilmadi',404);if(r.hash!==sourceStamp(p.data,index))fail('Mavzu o‘zgargan. Hujjatni ochib moslashtiring va saqlang.',409);return request('lesson-export',{data:p.data,index,lesson:r.data,format},true);},
     async download(id, format) {
       const p=data.programs.find(p=>p.id===id); if (!p) fail('Dastur topilmadi',404);
       return request('export',{data:p.data,format},true);

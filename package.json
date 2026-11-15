@@ -9,12 +9,14 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check server.mjs && node --check public/app.js && node --check public/demo.js && node --check demo-http.mjs && node --check syllabus-source.mjs && node --check workspace-api.mjs && node --check public/workspace-model.js"
+    "check": "node --check server.mjs && node --check public/app.js && node --check public/demo.js && node --check demo-http.mjs && node --check syllabus-source.mjs && node --check workspace-api.mjs && node --check public/workspace-model.js && node --check lesson-api.mjs && node --check lesson-docx.mjs && node --check public/lesson-model.js && node --check cover-art.mjs && node --check public/cover-model.js && node --check program-cover.mjs"
   },
   "dependencies": {
     "pg": "8.16.3",
     "docx": "9.5.1",
     "mammoth": "1.10.0",
-    "pdf-parse": "1.1.1"
+    "pdf-parse": "1.1.1",
+    "jszip": "3.10.1",
+    "sharp": "0.35.5"
   }
 }
