@@ -1,6 +1,6 @@
 import {readFile} from 'node:fs/promises';
 export function vendorFile(path){
- const fixed={'/vendor/ocr/tesseract.min.js':['tesseract.js/dist/tesseract.min.js','text/javascript'],'/vendor/ocr/worker.min.js':['tesseract.js/dist/worker.min.js','text/javascript'],'/vendor/pdfjs/pdf.mjs':['pdfjs-dist/build/pdf.mjs','text/javascript'],'/vendor/pdfjs/pdf.worker.mjs':['pdfjs-dist/build/pdf.worker.mjs','text/javascript']};
+ const fixed={'/vendor/jszip.min.js':['jszip/dist/jszip.min.js','text/javascript'],'/vendor/ocr/tesseract.min.js':['tesseract.js/dist/tesseract.min.js','text/javascript'],'/vendor/ocr/worker.min.js':['tesseract.js/dist/worker.min.js','text/javascript'],'/vendor/pdfjs/pdf.mjs':['pdfjs-dist/build/pdf.mjs','text/javascript'],'/vendor/pdfjs/pdf.worker.mjs':['pdfjs-dist/build/pdf.worker.mjs','text/javascript']};
  if(fixed[path])return fixed[path];
  let m=path.match(/^\/vendor\/ocr\/core\/(tesseract-core(?:-(?:simd|relaxedsimd))?(?:-lstm)?\.wasm(?:\.js)?)$/);if(m)return ['tesseract.js-core/'+m[1],m[1].endsWith('.js')?'text/javascript':'application/wasm'];
  m=path.match(/^\/vendor\/ocr\/lang\/(eng|rus)\.traineddata\.gz$/);if(m)return [`@tesseract.js-data/${m[1]}/4.0.0_best_int/${m[1]}.traineddata.gz`,'application/octet-stream'];

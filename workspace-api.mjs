@@ -1,3 +1,4 @@
+import {saveTeacherRoster} from './teacher-roster.mjs';
 import {educationStatus} from './public/profile-model.js';
 import {courseNumber} from './public/year-model.js';
 import {planScheduleImport} from './public/schedule-model.js';
@@ -32,7 +33,7 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit,
  }
  if(u.role==='admin')fail('O‘quv ma’lumotlari zavuch kabinetida',403);
  if(path==='/api/assignments'){
-  if(req.method==='GET'){const assignments=await assignmentRows(pool,u);const teachers=u.role==='zavuch'?(await pool.query("SELECT id,name,email,active FROM campus_users WHERE role='teacher' ORDER BY name")).rows:[];json(res,200,{assignments,teachers});return true;}
+  if(req.method==='GET'){const assignments=await assignmentRows(pool,u);const teachers=u.role==='zavuch'?(await pool.query("SELECT id,name,email,active,(active AND payment_approved AND payment_amount=400000) AS \"accessEnabled\",password_hash IS NOT NULL AS activated FROM campus_users WHERE role='teacher' ORDER BY name")).rows:[];json(res,200,{assignments,teachers});return true;}
   if(req.method==='POST'){
    if(u.role!=='zavuch')fail('Guruh va fanni faqat zavuch biriktiradi',403);const b=await body(req);
    if(b.action==='delete'){await pool.query('DELETE FROM campus_assignments WHERE id=$1',[String(b.id)]);await audit(u,'assignment','Dars biriktirishi olib tashlandi');json(res,200,{ok:true});return true;}
@@ -55,7 +56,7 @@ export async function handleWorkspace({path,req,res,u,pool,body,json,fail,audit,
   const records=(await pool.query('SELECT * FROM campus_records ORDER BY updated_at DESC,id DESC')).rows,assignments=await assignmentRows(pool,u);
   if(req.method==='GET'){json(res,200,{records:records.filter(r=>visibleRecord(u,r,assignments,records))});return true;}
   if(req.method==='POST'){
-   const b=await body(req);if(yearPhase!=='active'&&['attendance','grades'].includes(b.kind))fail('Yangi o‘quv yili 2-sentabrda boshlanadi.',409);if(!kinds.includes(b.kind)||['preparation','monthly','curricula','assignments','accessstatus'].includes(b.kind)||!permitted(u,b.kind))fail('Bu bo‘limga ruxsat yo‘q',403);
+   const b=await body(req);if(b.kind==='teachers'){json(res,200,await saveTeacherRoster({u,pool,b,fail}));return true;}if(yearPhase!=='active'&&['attendance','grades'].includes(b.kind))fail('Yangi o‘quv yili 2-sentabrda boshlanadi.',409);if(!kinds.includes(b.kind)||['preparation','monthly','curricula','assignments','accessstatus'].includes(b.kind)||!permitted(u,b.kind))fail('Bu bo‘limga ruxsat yo‘q',403);
    const old=b.id?records.find(r=>r.id===b.id&&r.kind===b.kind):null;
    if(b.id&&(!old||!editableRecord(u,old,assignments,records)))fail('Bu yozuvga ruxsat yo‘q',403);
    if(u.role==='teacher'&&!['attendance','grades'].includes(b.kind))fail('Faqat davomat va baho kiritish mumkin',403);

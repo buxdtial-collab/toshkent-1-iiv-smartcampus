@@ -20,3 +20,7 @@ textarea,select{font:inherit;display:block;width:100%;padding:12px;border:1px so
 
 /* Academic-year archive and student status controls */
 .year-dates,.year-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:20px 0}.year-dates>div{background:#f5faf6;border:1px solid #d9e8db;border-radius:14px;padding:18px}.year-card{display:flex;flex-direction:column;align-items:flex-start;gap:9px;padding:22px}.year-card strong{font-size:24px}.archive-detail{max-height:65vh;overflow:auto}.archive-field{padding:12px 0;border-bottom:1px solid #e7e9e3;white-space:pre-wrap;overflow-wrap:anywhere}.archive-field p{margin:7px 0}.archive-field .archive-field{padding-left:15px}.archive-program{flex-wrap:wrap}.archive-program details{width:100%;padding:12px 0}.archive-panel .toolbar label{min-width:160px;flex:1}.student-status-buttons{display:flex;gap:9px;flex-wrap:wrap}.student-status-buttons button{min-height:42px}.year-current h2{font-size:32px}.year-card small{color:#637568}@media(max-width:600px){.student-status-buttons button{width:100%}.year-dates,.year-cards{grid-template-columns:1fr}}
+
+.teacher-import-table{max-height:420px;overflow:auto}.teacher-import-table input{min-width:180px}.teacher-import-table th{position:sticky;top:0;background:#f5f8fb}.teacher-import-table input:invalid{border-color:#c85454}#teacherimporterror,#teacherprofileerror{color:#ac3040}button:disabled{cursor:not-allowed;opacity:.55}
+
+[hidden]{display:none!important}

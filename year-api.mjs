@@ -17,7 +17,7 @@ export async function initializeYears(pool){
 }
 export async function yearState(pool){return (await pool.query('SELECT active_year,phase,starts_on FROM campus_year_state WHERE id=true')).rows[0];}
 export async function currentYear(pool){return (await yearState(pool)).active_year;}
-export function isAcademicWrite(path,method){return method==='POST'&&(['/api/records','/api/assignments','/api/arrivals/check','/api/curricula','/api/schedule-imports'].includes(path)||path.startsWith('/api/preparation'));}
+export function isAcademicWrite(path,method){return method==='POST'&&(['/api/teacher-roster','/api/records','/api/assignments','/api/arrivals/check','/api/curricula','/api/schedule-imports'].includes(path)||path.startsWith('/api/preparation'));}
 export async function guardAcademicWrite({req,path,pool,fail}){
   if(!isAcademicWrite(path,req.method))return null;
   const client=await pool.connect();let locked=false;

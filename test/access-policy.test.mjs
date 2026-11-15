@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {canEnter,canManageAccess} from '../access-policy.mjs';
 test('only the technical administrator can authorize payments and access',()=>{for(const role of ['zavuch','teacher'])assert.equal(canManageAccess({role,active:true,payment_approved:true}),false);assert.equal(canManageAccess({role:'admin',active:true}),true);assert.equal(canManageAccess({role:'admin',active:false}),false)});
-test('unpaid accounts cannot enter even if active or previously invited',()=>{for(const role of ['teacher']){assert.equal(canEnter({role,active:true,payment_approved:false}),false);assert.equal(canEnter({role,active:true}),false);assert.equal(canEnter({role,active:true,payment_approved:true}),true);assert.equal(canEnter({role,active:false,payment_approved:true}),false)}});
+test('unpaid accounts cannot enter even if active or previously invited',()=>{for(const role of ['teacher']){assert.equal(canEnter({role,active:true,payment_approved:false}),false);assert.equal(canEnter({role,active:true}),false);assert.equal(canEnter({role,active:true,payment_approved:true,payment_amount:400000}),true);assert.equal(canEnter({role,active:false,payment_approved:true}),false)}});
 test('technical administrator is exempt from payment gating',()=>{assert.equal(canEnter({role:'admin',active:true,payment_approved:false}),true);assert.equal(canEnter(null),false)});
 
 test("zavuch has free access but still cannot grant access",()=>{assert.equal(canEnter({role:"zavuch",active:true,payment_approved:false}),true);assert.equal(canEnter({role:"zavuch",active:false,payment_approved:false}),false);assert.equal(canManageAccess({role:"zavuch",active:true}),false)});
+
